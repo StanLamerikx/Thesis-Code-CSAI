@@ -74,7 +74,7 @@ train_features_ptbdb = extract_features(X_train_ptbdb)
 test_features_ptbdb = extract_features(X_test_ptbdb)
 
 # Train and evaluate KNN for PTBDB dataset
-classifier_ptbdb = KNeighborsClassifier(n_neighbors=5)
+classifier_ptbdb = KNeighborsClassifier(n_neighbors=10)
 classifier_ptbdb.fit(train_features_ptbdb, y_train_ptbdb)
 predictions_ptbdb = classifier_ptbdb.predict(test_features_ptbdb)
 
