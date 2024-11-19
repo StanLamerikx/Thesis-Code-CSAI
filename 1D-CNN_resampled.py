@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
 from sklearn.model_selection import train_test_split
-from sklearn.utils import resample
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 
@@ -18,69 +17,53 @@ ptbdb_normal = pd.read_csv('./ptbdb_normal.csv')
 mitbih_test = pd.read_csv('./mitbih_test.csv')
 mitbih_train = pd.read_csv('./mitbih_train.csv')
 
-# Resampling for MITBIH
+# Process MITBIH Dataset
 y_train_mitbih = mitbih_train.iloc[:, -1].values
 y_test_mitbih = mitbih_test.iloc[:, -1].values
 X_train_mitbih = mitbih_train.iloc[:, :-1].values
 X_test_mitbih = mitbih_test.iloc[:, :-1].values
 
-# Create a DataFrame for resampling
-df_mitbih_train = pd.DataFrame(X_train_mitbih)
-df_mitbih_train['label'] = y_train_mitbih
-
-# Separate and resample classes for MITBIH
-df_0 = df_mitbih_train[df_mitbih_train['label'] == 0].sample(n=20000, random_state=42)
-df_1 = resample(df_mitbih_train[df_mitbih_train['label'] == 1], replace=True, n_samples=20000, random_state=123)
-df_2 = resample(df_mitbih_train[df_mitbih_train['label'] == 2], replace=True, n_samples=20000, random_state=124)
-df_3 = resample(df_mitbih_train[df_mitbih_train['label'] == 3], replace=True, n_samples=20000, random_state=125)
-df_4 = resample(df_mitbih_train[df_mitbih_train['label'] == 4], replace=True, n_samples=20000, random_state=126)
-
-df_mitbih_resampled = pd.concat([df_0, df_1, df_2, df_3, df_4])
-
-# Extract features and labels after resampling
-X_train_mitbih = df_mitbih_resampled.iloc[:, :-1].values
-y_train_mitbih = df_mitbih_resampled['label'].values
+# Split into training, validation, and test sets for MITBIH
+X_train_mitbih, X_val_mitbih, y_train_mitbih, y_val_mitbih = train_test_split(
+    X_train_mitbih, y_train_mitbih, test_size=0.2, random_state=42, stratify=y_train_mitbih
+)
 X_train_mitbih_tensor = torch.tensor(X_train_mitbih, dtype=torch.float32).unsqueeze(1).to(device)
 y_train_mitbih_tensor = torch.tensor(y_train_mitbih, dtype=torch.long).to(device)
+X_val_mitbih_tensor = torch.tensor(X_val_mitbih, dtype=torch.float32).unsqueeze(1).to(device)
+y_val_mitbih_tensor = torch.tensor(y_val_mitbih, dtype=torch.long).to(device)
 X_test_mitbih_tensor = torch.tensor(X_test_mitbih, dtype=torch.float32).unsqueeze(1).to(device)
 y_test_mitbih_tensor = torch.tensor(y_test_mitbih, dtype=torch.long).to(device)
 
 train_mitbih_data = TensorDataset(X_train_mitbih_tensor, y_train_mitbih_tensor)
+val_mitbih_data = TensorDataset(X_val_mitbih_tensor, y_val_mitbih_tensor)
 test_mitbih_data = TensorDataset(X_test_mitbih_tensor, y_test_mitbih_tensor)
 train_loader_mitbih = DataLoader(train_mitbih_data, batch_size=64, shuffle=True)
+val_loader_mitbih = DataLoader(val_mitbih_data, batch_size=32, shuffle=False)
 test_loader_mitbih = DataLoader(test_mitbih_data, batch_size=32, shuffle=False)
 
-# Resampling for PTBDB
+# Process PTBDB Dataset
 ptbdb_abnormal.columns = range(ptbdb_abnormal.shape[1])
 ptbdb_normal.columns = range(ptbdb_normal.shape[1])
 ptbdb_combined = pd.concat([ptbdb_abnormal, ptbdb_normal], ignore_index=True)
 X_ptbdb = ptbdb_combined.iloc[:, :-1].values
 y_ptbdb = ptbdb_combined.iloc[:, -1].values
 
-X_train_ptbdb, X_test_ptbdb, y_train_ptbdb, y_test_ptbdb = train_test_split(
+# Split into training, validation, and test sets for PTBDB
+X_train_ptbdb, X_val_ptbdb, y_train_ptbdb, y_val_ptbdb = train_test_split(
     X_ptbdb, y_ptbdb, test_size=0.2, random_state=42, stratify=y_ptbdb
 )
-
-df_ptbdb_train = pd.DataFrame(X_train_ptbdb)
-df_ptbdb_train['label'] = y_train_ptbdb
-df_normal = df_ptbdb_train[df_ptbdb_train['label'] == 0]
-df_abnormal = df_ptbdb_train[df_ptbdb_train['label'] == 1]
-sample_size = max(len(df_normal), len(df_abnormal))
-
-df_normal_resampled = resample(df_normal, replace=True, n_samples=sample_size, random_state=42)
-df_abnormal_resampled = resample(df_abnormal, replace=True, n_samples=sample_size, random_state=123)
-df_ptbdb_resampled = pd.concat([df_normal_resampled, df_abnormal_resampled])
-
-X_train_ptbdb = df_ptbdb_resampled.iloc[:, :-1].values
-y_train_ptbdb = df_ptbdb_resampled['label'].values
 X_train_ptbdb_tensor = torch.tensor(X_train_ptbdb, dtype=torch.float32).unsqueeze(1).to(device)
 y_train_ptbdb_tensor = torch.tensor(y_train_ptbdb, dtype=torch.long).to(device)
-X_test_ptbdb_tensor = torch.tensor(X_test_ptbdb, dtype=torch.float32).unsqueeze(1).to(device)
-y_test_ptbdb_tensor = torch.tensor(y_test_ptbdb, dtype=torch.long).to(device)
+X_val_ptbdb_tensor = torch.tensor(X_val_ptbdb, dtype=torch.float32).unsqueeze(1).to(device)
+y_val_ptbdb_tensor = torch.tensor(y_val_ptbdb, dtype=torch.long).to(device)
+X_test_ptbdb_tensor = torch.tensor(X_ptbdb, dtype=torch.float32).unsqueeze(1).to(device)
+y_test_ptbdb_tensor = torch.tensor(y_ptbdb, dtype=torch.long).to(device)
 
 train_ptbdb_data = TensorDataset(X_train_ptbdb_tensor, y_train_ptbdb_tensor)
+val_ptbdb_data = TensorDataset(X_val_ptbdb_tensor, y_val_ptbdb_tensor)
 test_ptbdb_data = TensorDataset(X_test_ptbdb_tensor, y_test_ptbdb_tensor)
 train_loader_ptbdb = DataLoader(train_ptbdb_data, batch_size=64, shuffle=True)
+val_loader_ptbdb = DataLoader(val_ptbdb_data, batch_size=32, shuffle=False)
 test_loader_ptbdb = DataLoader(test_ptbdb_data, batch_size=32, shuffle=False)
 
 # Define the 1D CNN model with batch normalization and dropout
@@ -126,8 +109,8 @@ criterion = nn.CrossEntropyLoss()
 optimizer_mitbih = torch.optim.Adam(model_mitbih.parameters(), lr=0.001)
 optimizer_ptbdb = torch.optim.Adam(model_ptbdb.parameters(), lr=0.001)
 
-# Training and evaluation function
-def train_and_evaluate(model, optimizer, train_loader, test_loader, y_test, dataset_name):
+# Training and evaluation function with validation
+def train_and_evaluate(model, optimizer, train_loader, val_loader, test_loader, dataset_name):
     num_epochs = 150
     early_stopping_patience = 40
     best_val_accuracy = 0.0
@@ -144,9 +127,32 @@ def train_and_evaluate(model, optimizer, train_loader, test_loader, y_test, data
             optimizer.step()
             running_loss += loss.item()
         
-        # Early stopping mechanism could be added here based on validation
+        # Validation
+        model.eval()
+        all_preds, all_labels = [], []
+        with torch.no_grad():
+            for X_batch, y_batch in val_loader:
+                outputs = model(X_batch)
+                _, predicted = torch.max(outputs, 1)
+                all_preds.extend(predicted.cpu().numpy())
+                all_labels.extend(y_batch.cpu().numpy())
+        
+        val_accuracy = accuracy_score(all_labels, all_preds)
+        print(f"Epoch [{epoch+1}/{num_epochs}] - {dataset_name} Validation Accuracy: {val_accuracy:.4f}")
 
-    # Load best model and evaluate on test set
+        # Early stopping
+        if val_accuracy > best_val_accuracy:
+            best_val_accuracy = val_accuracy
+            patience_counter = 0
+            torch.save(model.state_dict(), f"best_model_{dataset_name}.pth")
+        else:
+            patience_counter += 1
+            if patience_counter >= early_stopping_patience:
+                print(f"Early stopping at epoch {epoch+1} for {dataset_name}")
+                break
+
+    # Load best model for final evaluation on test set
+    model.load_state_dict(torch.load(f"best_model_{dataset_name}.pth"))
     model.eval()
     all_preds, all_labels = [], []
     with torch.no_grad():
@@ -172,7 +178,7 @@ def train_and_evaluate(model, optimizer, train_loader, test_loader, y_test, data
 
 # Train and evaluate the model on both datasets
 print("\nTraining and evaluating on MITBIH dataset:")
-train_and_evaluate(model_mitbih, optimizer_mitbih, train_loader_mitbih, test_loader_mitbih, y_test_mitbih, "MITBIH")
+train_and_evaluate(model_mitbih, optimizer_mitbih, train_loader_mitbih, val_loader_mitbih, test_loader_mitbih, "MITBIH")
 
 print("\nTraining and evaluating on PTBDB dataset:")
-train_and_evaluate(model_ptbdb, optimizer_ptbdb, train_loader_ptbdb, test_loader_ptbdb, y_test_ptbdb, "PTBDB")
+train_and_evaluate(model_ptbdb, optimizer_ptbdb, train_loader_ptbdb, val_loader_ptbdb, test_loader_ptbdb, "PTBDB")
