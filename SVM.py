@@ -41,7 +41,7 @@ X_train_ptbdb_flat, X_val_ptbdb_flat, X_test_ptbdb_flat = preprocess_data(X_trai
 
 # Initialize and train SVM models
 def train_and_evaluate_svm(X_train, y_train, X_test, y_test, dataset_name):
-    svm_model = svm.SVC(kernel='linear', C=1)
+    svm_model = svm.SVC(kernel='rbf', C=1)
     print(f"Training SVM on {dataset_name} dataset...")
     svm_model.fit(X_train, y_train)
     
