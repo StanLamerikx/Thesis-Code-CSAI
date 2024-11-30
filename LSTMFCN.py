@@ -79,7 +79,7 @@ model_ptbdb = LSTMFCNClassifier(
     n_epochs=100,               # Set to a suitable number of epochs
     batch_size=32,               # Batch size for training
     random_state=42,             # Seed for reproducibility
-    attention=True
+    attention=False
 )
 
 model_ptbdb.fit(X_train_ptbdb_3D, y_train_ptbdb)
