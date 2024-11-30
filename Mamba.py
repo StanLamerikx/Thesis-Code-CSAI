@@ -11,9 +11,6 @@ import matplotlib.pyplot as plt
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
-# Early stopping parameters
-early_stopping_patience = 40
-
 # Load datasets
 ptbdb_abnormal = pd.read_csv('./ptbdb_abnormal.csv')
 ptbdb_normal = pd.read_csv('./ptbdb_normal.csv')
@@ -40,7 +37,7 @@ y_test_mitbih_tensor = torch.tensor(y_test_mitbih, dtype=torch.long).to(device)
 train_mitbih_data = TensorDataset(X_train_mitbih_tensor, y_train_mitbih_tensor)
 val_mitbih_data = TensorDataset(X_val_mitbih_tensor, y_val_mitbih_tensor)
 test_mitbih_data = TensorDataset(X_test_mitbih_tensor, y_test_mitbih_tensor)
-train_loader_mitbih = DataLoader(train_mitbih_data, batch_size=132, shuffle=True)
+train_loader_mitbih = DataLoader(train_mitbih_data, batch_size=32, shuffle=True)
 val_loader_mitbih = DataLoader(val_mitbih_data, batch_size=32, shuffle=False)
 test_loader_mitbih = DataLoader(test_mitbih_data, batch_size=32, shuffle=False)
 
@@ -77,7 +74,7 @@ model = Mamba(d_model=dim, d_state=32, d_conv=4, expand=2).to(device)
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-# Train and evaluate with early stopping based on validation accuracy
+# Train and evaluate without early stopping
 num_epochs = 150
 results = {"train_loss": [], "val_loss": [], "val_accuracy": []}
 
@@ -88,10 +85,6 @@ for dataset_name, train_loader, val_loader, test_loader in [
 
     print(f"Training on {dataset_name} dataset")
     
-    # Reset early stopping variables for each dataset
-    best_val_accuracy = 0.0
-    patience_counter = 0
-
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -121,17 +114,6 @@ for dataset_name, train_loader, val_loader, test_loader in [
         
         # Print loss and accuracy for this epoch
         print(f"Epoch [{epoch+1}/{num_epochs}] - {dataset_name} Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
-
-        # Early stopping based on validation accuracy
-        if val_accuracy > best_val_accuracy:
-            best_val_accuracy = val_accuracy
-            patience_counter = 0
-            torch.save(model.state_dict(), f"best_model_{dataset_name}.pth")
-        else:
-            patience_counter += 1
-            if patience_counter >= early_stopping_patience:
-                print(f"Early stopping at epoch {epoch+1} for {dataset_name} due to no improvement in accuracy")
-                break
 
         results["train_loss"].append(train_loss)
         results["val_loss"].append(val_loss)
