@@ -78,17 +78,13 @@ criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 num_epochs = 150
-early_stopping_patience = 40
 
-# Training with early stopping and evaluation
+# Training and evaluation
 for dataset_name, train_loader, test_loader, y_test in [
     ("MITBIH", train_loader_mitbih, test_loader_mitbih, y_test_mitbih),
     ("PTBDB", train_loader_ptbdb, test_loader_ptbdb, y_test_ptbdb),
 ]:
     print(f"\nTraining on {dataset_name} dataset")
-    best_val_accuracy = 0.0
-    patience_counter = 0
-
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -100,33 +96,20 @@ for dataset_name, train_loader, test_loader, y_test in [
             optimizer.step()
             running_loss += loss.item()
 
-        # Validation
-        model.eval()
-        all_preds = []
-        all_labels = []
-        with torch.no_grad():
-            for X_batch, y_batch in test_loader:
-                outputs = model(X_batch).squeeze(1)
-                _, predicted = torch.max(outputs, 1)
-                all_preds.extend(predicted.cpu().numpy())
-                all_labels.extend(y_batch.cpu().numpy())
-
-        # Calculate validation accuracy
-        val_accuracy = accuracy_score(all_labels, all_preds)
-        print(f"Epoch [{epoch+1}/{num_epochs}] - {dataset_name} Validation Accuracy: {val_accuracy:.4f}")
-
-        # Early stopping based on validation accuracy
-        if val_accuracy > best_val_accuracy:
-            best_val_accuracy = val_accuracy
-            patience_counter = 0
-            torch.save(model.state_dict(), f"best_model_{dataset_name}.pth")
-        else:
-            patience_counter += 1
-            if patience_counter >= early_stopping_patience:
-                print(f"Early stopping at epoch {epoch+1} for {dataset_name} due to no improvement in accuracy")
-                break
+        print(f"Epoch [{epoch+1}/{num_epochs}] - {dataset_name} Training Loss: {running_loss / len(train_loader):.4f}")
 
     # Final evaluation on test set
+    model.eval()
+    all_preds = []
+    all_labels = []
+    with torch.no_grad():
+        for X_batch, y_batch in test_loader:
+            outputs = model(X_batch).squeeze(1)
+            _, predicted = torch.max(outputs, 1)
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(y_batch.cpu().numpy())
+
+    # Calculate test metrics
     accuracy = accuracy_score(all_labels, all_preds)
     f1 = f1_score(all_labels, all_preds, average='weighted')
     precision = precision_score(all_labels, all_preds, average='weighted')
