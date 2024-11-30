@@ -6,8 +6,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 from tensorflow.keras.optimizers import Adam
 
-print("Results LSTMFCN_resampled with attention.py")
-
 # Load datasets
 ptbdb_abnormal = pd.read_csv('./ptbdb_abnormal.csv')
 ptbdb_normal = pd.read_csv('./ptbdb_normal.csv')
