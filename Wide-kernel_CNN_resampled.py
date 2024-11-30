@@ -140,13 +140,10 @@ criterion = nn.CrossEntropyLoss()
 optimizer_mitbih = torch.optim.Adam(model_mitbih.parameters(), lr=0.001)
 optimizer_ptbdb = torch.optim.Adam(model_ptbdb.parameters(), lr=0.001)
 
-# Training and evaluation function with early stopping
-def train_and_evaluate(model, optimizer, train_loader, test_loader, y_test, dataset_name):
+# Training and evaluation function without early stopping
+def train_and_evaluate(model, optimizer, train_loader, val_loader, test_loader, dataset_name):
     num_epochs = 150
-    early_stopping_patience = 40
-    best_val_accuracy = 0.0
-    patience_counter = 0
-    
+
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -158,33 +155,20 @@ def train_and_evaluate(model, optimizer, train_loader, test_loader, y_test, data
             optimizer.step()
             running_loss += loss.item()
         
-        # Validation step (optional, can add validation loader if needed)
+        # Validation
         model.eval()
         all_preds, all_labels = [], []
         with torch.no_grad():
-            for X_batch, y_batch in test_loader:
+            for X_batch, y_batch in val_loader:
                 outputs = model(X_batch)
                 _, predicted = torch.max(outputs, 1)
                 all_preds.extend(predicted.cpu().numpy())
                 all_labels.extend(y_batch.cpu().numpy())
         
-        # Calculate validation accuracy
         val_accuracy = accuracy_score(all_labels, all_preds)
         print(f"Epoch [{epoch+1}/{num_epochs}] - {dataset_name} Validation Accuracy: {val_accuracy:.4f}")
 
-        # Early stopping
-        if val_accuracy > best_val_accuracy:
-            best_val_accuracy = val_accuracy
-            patience_counter = 0
-            torch.save(model.state_dict(), f"best_model_{dataset_name}.pth")
-        else:
-            patience_counter += 1
-            if patience_counter >= early_stopping_patience:
-                print(f"Early stopping at epoch {epoch+1} for {dataset_name}")
-                break
-
-    # Load best model for final evaluation on test set
-    model.load_state_dict(torch.load(f"best_model_{dataset_name}.pth"))
+    # Final evaluation on test set
     model.eval()
     all_preds, all_labels = [], []
     with torch.no_grad():
@@ -210,7 +194,7 @@ def train_and_evaluate(model, optimizer, train_loader, test_loader, y_test, data
 
 # Train and evaluate the model on both datasets
 print("\nTraining and evaluating on MITBIH dataset:")
-train_and_evaluate(model_mitbih, optimizer_mitbih, train_loader_mitbih, test_loader_mitbih, y_test_mitbih, "MITBIH")
+train_and_evaluate(model_mitbih, optimizer_mitbih, train_loader_mitbih, val_loader_mitbih, test_loader_mitbih, "MITBIH")
 
 print("\nTraining and evaluating on PTBDB dataset:")
-train_and_evaluate(model_ptbdb, optimizer_ptbdb, train_loader_ptbdb, test_loader_ptbdb, y_test_ptbdb, "PTBDB")
+train_and_evaluate(model_ptbdb, optimizer_ptbdb, train_loader_ptbdb, val_loader_ptbdb, test_loader_ptbdb, "PTBDB")
